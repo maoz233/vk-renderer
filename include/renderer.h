@@ -8,10 +8,20 @@
  * @copyright Copyright (c) 2024
  *
  */
+
+namespace vkr {
+
 class Renderer {
  public:
   Renderer();
   ~Renderer();
 
-  int run();
+  void run();
+
+ private:
+  void init();
+  void render();
+  void clean();
 };
+
+}  // namespace vkr

@@ -8,17 +8,21 @@
  * @copyright Copyright (c) 2024
  *
  */
+#include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 
 #include "renderer.h"
 
 int main() {
-  std::clog << "Starting..." << std::endl;
+  vkr::Renderer renderer{};
 
-  Renderer* renderer = new Renderer();
-  renderer->run();
+  try {
+    renderer.run();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
-  std::cout << "Terminating..." << std::endl;
-
-  return 0;
+  return EXIT_SUCCESS;
 }
