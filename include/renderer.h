@@ -14,6 +14,7 @@
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 namespace vkr {
 
@@ -26,12 +27,16 @@ class Renderer {
 
  private:
   GLFWwindow* window_;
+  VkInstance instance_;
 
   void init();
   void render();
   void clean();
 
   void initWindow();
+  void initVulkan();
+
+  void createInstance();
 };
 
 }  // namespace vkr
