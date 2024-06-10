@@ -11,6 +11,7 @@
 #include "renderer.h"
 
 #include <stdexcept>
+#include <vector>
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
@@ -78,15 +79,25 @@ void Renderer::createInstance() {
                       VK_RENDERER_VERSION_PATCH);
   appInfo.apiVersion = VK_API_VERSION_1_0;
 
+  std::vector<const char*> requiredExtensions{};
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions;
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+  for (uint32_t i = 0; i < glfwExtensionCount; i++) {
+    requiredExtensions.push_back(glfwExtensions[i]);
+  }
+#ifdef __APPLE__
+  requiredExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 
   VkInstanceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   createInfo.pApplicationInfo = &appInfo;
-  createInfo.enabledExtensionCount = glfwExtensionCount;
-  createInfo.ppEnabledExtensionNames = glfwExtensions;
+#ifdef __APPLE__
+  createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+  createInfo.ppEnabledExtensionNames = requiredExtensions.data();
   createInfo.enabledLayerCount = 0;
 
   VkResult result = vkCreateInstance(&createInfo, nullptr, &instance_);
