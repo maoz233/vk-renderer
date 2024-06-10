@@ -8,8 +8,11 @@
  * @copyright Copyright (c) 2024
  *
  */
+#define VK_RENDERRER_NAME "@PROJECT_NAME@"
+
 #define VK_RENDERER_VERSION_MAJOR @vk-renderer_VERSION_MAJOR@
 #define VK_RENDERER_VERSION_MINOR @vk-renderer_VERSION_MINOR@
+#define VK_RENDERER_VERSION_PATCH @vk-renderer_VERSION_PATCH@
 
 #define VK_RENDERER_WINDOW_WIDTH 800
 #define VK_RENDERER_WINDOW_HEIGHT 600
