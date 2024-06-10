@@ -8,6 +8,12 @@
  * @copyright Copyright (c) 2024
  *
  */
+#ifndef VK_RENDERER_RENDERER_H_
+#define VK_RENDERER_RENDERER_H_
+
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
 namespace vkr {
 
@@ -19,9 +25,15 @@ class Renderer {
   void run();
 
  private:
+  GLFWwindow* window_;
+
   void init();
   void render();
   void clean();
+
+  void initWindow();
 };
 
 }  // namespace vkr
+
+#endif  // VK_RENDERER_RENDERER_H_
