@@ -10,6 +10,7 @@
  */
 #include "renderer.h"
 
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -79,6 +80,16 @@ void Renderer::createInstance() {
                       VK_RENDERER_VERSION_PATCH);
   appInfo.apiVersion = VK_API_VERSION_1_0;
 
+  uint32_t extensionCount = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+  std::vector<VkExtensionProperties> extensions(extensionCount);
+  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
+                                         extensions.data());
+  std::clog << "Available extensions:" << std::endl;
+  for (const auto& extension : extensions) {
+    std::clog << "\t" << extension.extensionName << std::endl;
+  }
+
   std::vector<const char*> requiredExtensions{};
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions;
@@ -96,7 +107,8 @@ void Renderer::createInstance() {
 #ifdef __APPLE__
   createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
-  createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+  createInfo.enabledExtensionCount =
+      static_cast<uint32_t>(requiredExtensions.size());
   createInfo.ppEnabledExtensionNames = requiredExtensions.data();
   createInfo.enabledLayerCount = 0;
 
