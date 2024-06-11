@@ -235,6 +235,8 @@ void Renderer::createLogicalDevice() {
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to create logical device!");
   }
+
+  vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue_);
 }
 
 std::vector<const char*> Renderer::getRequiredExtensions() {

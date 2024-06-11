@@ -39,6 +39,7 @@ class Renderer {
   VkDebugUtilsMessengerEXT debugMessenger_;
   VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
   VkDevice device_;
+  VkQueue graphicsQueue_;
 
   void init();
   void render();
