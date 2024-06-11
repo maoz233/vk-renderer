@@ -30,6 +30,7 @@ class Renderer {
   GLFWwindow* window_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debugMessenger_;
+  VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
 
   void init();
   void render();
@@ -40,11 +41,14 @@ class Renderer {
 
   void createInstance();
   void setupDebugMessenger();
+  void pickPhysicalDevice();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
   void populateDebugMessengerCreateInfo(
       VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+  bool isDeviceSuitable(VkPhysicalDevice device);
+  int rateDeviceSuitability(VkPhysicalDevice device);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,

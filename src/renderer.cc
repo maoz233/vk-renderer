@@ -11,6 +11,7 @@
 #include "renderer.h"
 
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <vector>
 
@@ -87,6 +88,7 @@ void Renderer::initWindow() {
 void Renderer::initVulkan() {
   createInstance();
   setupDebugMessenger();
+  pickPhysicalDevice();
 }
 
 void Renderer::createInstance() {
@@ -163,6 +165,41 @@ void Renderer::setupDebugMessenger() {
   }
 }
 
+void Renderer::pickPhysicalDevice() {
+  uint32_t deviceCount = 0;
+  vkEnumeratePhysicalDevices(instance_, &deviceCount, nullptr);
+  if (!deviceCount) {
+    throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+  }
+
+  std::vector<VkPhysicalDevice> devices(deviceCount);
+  vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
+
+  for (const auto& device : devices) {
+    if (isDeviceSuitable(device)) {
+      physicalDevice_ = device;
+      break;
+    }
+  }
+
+  if (VK_NULL_HANDLE == physicalDevice_) {
+    throw std::runtime_error("Failed to find a suitable GPU!");
+  }
+
+  // std::multimap<int, VkPhysicalDevice> candidates;
+
+  // for (const auto& device : devices) {
+  //   int score = rateDeviceSuitability(device);
+  //   candidates.insert(std::make_pair(score, device));
+  // }
+
+  // if (candidates.rbegin()->first > 0) {
+  //   physicalDevice_ = candidates.rbegin()->second;
+  // } else {
+  //   throw std::runtime_error("Failed to find a suitable GPU!");
+  // }
+}
+
 std::vector<const char*> Renderer::getRequiredExtensions() {
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions = nullptr;
@@ -214,6 +251,36 @@ void Renderer::populateDebugMessengerCreateInfo(
                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   createInfo.pfnUserCallback = debugCallback;
   createInfo.pUserData = nullptr;
+}
+
+bool Renderer::isDeviceSuitable(VkPhysicalDevice device) {
+  // VkPhysicalDeviceProperties deviceProperties{};
+  // vkGetPhysicalDeviceProperties(device, &deviceProperties);
+  // VkPhysicalDeviceFeatures deviceFeatures{};
+  // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+  // return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+  // &&
+  //        deviceFeatures.geometryShader;
+  return true;
+}
+
+int Renderer::rateDeviceSuitability(VkPhysicalDevice device) {
+  int score = 0;
+  VkPhysicalDeviceProperties deviceProperties{};
+  vkGetPhysicalDeviceProperties(device, &deviceProperties);
+  VkPhysicalDeviceFeatures deviceFeatures{};
+  vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+  if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == deviceProperties.deviceType) {
+    score += 1000;
+  }
+  score += deviceProperties.limits.maxImageDimension2D;
+  if (!deviceFeatures.geometryShader) {
+    return 0;
+  }
+
+  return score;
 }
 
 VkResult Renderer::CreateDebugUtilsMessengerEXT(
