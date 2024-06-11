@@ -25,7 +25,9 @@
 
 namespace vkr {
 
-bool QueueFamilyIndices::isComplete() { return graphicsFamily.has_value(); }
+bool QueueFamilyIndices::isComplete() {
+  return graphicsFamily.has_value() && presentFamily.has_value();
+}
 
 const std::vector<const char*> validationLayers{"VK_LAYER_KHRONOS_validation"};
 
@@ -173,8 +175,9 @@ void Renderer::setupDebugMessenger() {
 }
 
 void Renderer::createSurface() {
-  VkResult result = glfwCreateWindowSurface(instance_, window_, nullptr, &surface_);
-  if(VK_SUCCESS != result) {
+  VkResult result =
+      glfwCreateWindowSurface(instance_, window_, nullptr, &surface_);
+  if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to create window surface!");
   }
 }
@@ -346,6 +349,13 @@ QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device) {
     if (queueFamiliy.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
       indices.graphicsFamily = i;
     }
+
+    VkBool32 presentSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &presentSupport);
+    if (presentSupport) {
+      indices.presentFamily = i;
+    }
+
     if (indices.isComplete()) {
       break;
     }
