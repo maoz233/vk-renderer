@@ -38,6 +38,7 @@ class Renderer {
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debugMessenger_;
   VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
+  VkDevice device_;
 
   void init();
   void render();
@@ -49,6 +50,7 @@ class Renderer {
   void createInstance();
   void setupDebugMessenger();
   void pickPhysicalDevice();
+  void createLogicalDevice();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
