@@ -59,7 +59,9 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
-  DestroyDebugUtilsMessengerEXT(instance_, debugMessenger_, nullptr);
+  if (enableValidationLayers) {
+    DestroyDebugUtilsMessengerEXT(instance_, debugMessenger_, nullptr);
+  }
   vkDestroyInstance(instance_, nullptr);
 
   glfwDestroyWindow(window_);
