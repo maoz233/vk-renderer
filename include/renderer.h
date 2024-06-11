@@ -10,6 +10,7 @@
  */
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
+#include <optional>
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
@@ -18,6 +19,12 @@
 #include <vulkan/vulkan.h>
 
 namespace vkr {
+
+struct QueueFamilyIndices {
+  std::optional<uint32_t> graphicsFamily;
+
+  bool isComplete();
+};
 
 class Renderer {
  public:
@@ -49,6 +56,8 @@ class Renderer {
       VkDebugUtilsMessengerCreateInfoEXT& createInfo);
   bool isDeviceSuitable(VkPhysicalDevice device);
   int rateDeviceSuitability(VkPhysicalDevice device);
+
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
