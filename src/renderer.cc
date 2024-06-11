@@ -226,7 +226,7 @@ void Renderer::DestroyDebugUtilsMessengerEXT(
   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
       instance, "vkDestroyDebugUtilsMessengerEXT");
   if (func) {
-    return func(instance_, debugMessenger, pAllocator);
+    return func(instance, debugMessenger, pAllocator);
   }
 }
 
