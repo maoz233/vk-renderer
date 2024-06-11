@@ -43,6 +43,8 @@ class Renderer {
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
+  void populateDebugMessengerCreateInfo(
+      VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
