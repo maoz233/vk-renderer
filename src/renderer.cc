@@ -45,6 +45,8 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
+  vkDestroyInstance(instance_, nullptr);
+
   glfwDestroyWindow(window_);
   glfwTerminate();
 }
