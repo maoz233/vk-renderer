@@ -37,6 +37,7 @@ class Renderer {
   GLFWwindow* window_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debugMessenger_;
+  VkSurfaceKHR surface_;
   VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
   VkDevice device_;
   VkQueue graphicsQueue_;
@@ -50,6 +51,7 @@ class Renderer {
 
   void createInstance();
   void setupDebugMessenger();
+  void createSurface();
   void pickPhysicalDevice();
   void createLogicalDevice();
 

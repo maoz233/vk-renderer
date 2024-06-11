@@ -64,6 +64,7 @@ void Renderer::render() {
 
 void Renderer::clean() {
   vkDestroyDevice(device_, nullptr);
+  vkDestroySurfaceKHR(instance_, surface_, nullptr);
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(instance_, debugMessenger_, nullptr);
   }
@@ -92,6 +93,7 @@ void Renderer::initWindow() {
 void Renderer::initVulkan() {
   createInstance();
   setupDebugMessenger();
+  createSurface();
   pickPhysicalDevice();
   createLogicalDevice();
 }
@@ -167,6 +169,13 @@ void Renderer::setupDebugMessenger() {
                                                  nullptr, &debugMessenger_);
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to set up debug messenger!");
+  }
+}
+
+void Renderer::createSurface() {
+  VkResult result = glfwCreateWindowSurface(instance_, window_, nullptr, &surface_);
+  if(VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to create window surface!");
   }
 }
 
