@@ -216,12 +216,19 @@ void Renderer::createLogicalDevice() {
 
   VkPhysicalDeviceFeatures deviceFeatures{};
 
+  std::vector<const char*> extensions{};
+  if (isOSX) {
+    extensions.push_back("VK_KHR_portability_subset");
+  }
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.pQueueCreateInfos = &queueCreateInfo;
   createInfo.queueCreateInfoCount = 1;
   createInfo.pEnabledFeatures = &deviceFeatures;
-  createInfo.enabledExtensionCount = 0;
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  createInfo.ppEnabledExtensionNames = extensions.data();
+
   if (enableValidationLayers) {
     createInfo.enabledLayerCount =
         static_cast<uint32_t>(validationLayers.size());
@@ -248,6 +255,7 @@ std::vector<const char*> Renderer::getRequiredExtensions() {
                                       glfwExtensions + glfwExtensionCount);
   if (isOSX) {
     extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    extensions.push_back("VK_KHR_get_physical_device_properties2");
   }
   if (enableValidationLayers) {
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
