@@ -42,6 +42,7 @@ class Renderer {
   VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
   VkDevice device_;
   VkQueue graphicsQueue_;
+  VkQueue presentQueue_;
 
   void init();
   void render();
