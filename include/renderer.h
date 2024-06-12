@@ -27,6 +27,12 @@ struct QueueFamilyIndices {
   bool isComplete();
 };
 
+struct SwapChainSupportDetails {
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> presentModes;
+};
+
 class Renderer {
  public:
   Renderer();
@@ -43,6 +49,7 @@ class Renderer {
   VkDevice device_;
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
+  VkSwapchainKHR swapChain_;
 
   void init();
   void render();
@@ -56,6 +63,7 @@ class Renderer {
   void createSurface();
   void pickPhysicalDevice();
   void createLogicalDevice();
+  void createSwapChain();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
@@ -63,8 +71,15 @@ class Renderer {
       VkDebugUtilsMessengerCreateInfoEXT& createInfo);
   bool isDeviceSuitable(VkPhysicalDevice device);
   int rateDeviceSuitability(VkPhysicalDevice device);
+  VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+      const std::vector<VkSurfaceFormatKHR>& availableFormats);
+  VkPresentModeKHR chooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR>& availablePresentModes);
+  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+  bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+  SwapChainSupportDetails querySwapChainSupprt(VkPhysicalDevice device);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
