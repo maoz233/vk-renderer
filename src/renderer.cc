@@ -32,7 +32,7 @@ namespace vkr {
 #ifdef __APPLE__
 const bool isOSX = true;
 const std::vector<const char*> deviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                                                ""};
+                                                "VK_KHR_portability_subset"};
 #else
 const bool isOSX = false;
 const std::vector<const char*> deviceExtensions{
