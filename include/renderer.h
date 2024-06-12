@@ -53,6 +53,7 @@ class Renderer {
   std::vector<VkImage> swapChainImages_;
   VkFormat swapChainImageFormat_;
   VkExtent2D swapChainExtent_;
+  std::vector<VkImageView> swapChainImageViews_;
 
   void init();
   void render();
@@ -67,6 +68,7 @@ class Renderer {
   void pickPhysicalDevice();
   void createLogicalDevice();
   void createSwapChain();
+  void createImageViews();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();

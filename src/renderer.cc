@@ -73,6 +73,9 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
+  for (auto imageView : swapChainImageViews_) {
+    vkDestroyImageView(device_, imageView, nullptr);
+  }
   vkDestroySwapchainKHR(device_, swapChain_, nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
@@ -108,6 +111,7 @@ void Renderer::initVulkan() {
   pickPhysicalDevice();
   createLogicalDevice();
   createSwapChain();
+  createImageViews();
 }
 
 void Renderer::createInstance() {
@@ -329,6 +333,32 @@ void Renderer::createSwapChain() {
                           swapChainImages_.data());
   swapChainImageFormat_ = surfaceFormat.format;
   swapChainExtent_ = extent;
+}
+
+void Renderer::createImageViews() {
+  swapChainImageViews_.resize(swapChainImages_.size());
+  for (size_t i = 0; i < swapChainImages_.size(); ++i) {
+    VkImageViewCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.image = swapChainImages_[i];
+    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.format = swapChainImageFormat_;
+    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+
+    VkResult result = vkCreateImageView(device_, &createInfo, nullptr,
+                                        &swapChainImageViews_[i]);
+    if (VK_SUCCESS != result) {
+      throw std::runtime_error("Failed to create image views!");
+    }
+  }
 }
 
 std::vector<const char*> Renderer::getRequiredExtensions() {
