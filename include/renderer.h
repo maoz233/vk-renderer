@@ -50,6 +50,9 @@ class Renderer {
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
   VkSwapchainKHR swapChain_;
+  std::vector<VkImage> swapChainImages_;
+  VkFormat swapChainImageFormat_;
+  VkExtent2D swapChainExtent_;
 
   void init();
   void render();

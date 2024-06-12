@@ -322,6 +322,13 @@ void Renderer::createSwapChain() {
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to create swap chain!");
   }
+
+  vkGetSwapchainImagesKHR(device_, swapChain_, &imageCount, nullptr);
+  swapChainImages_.resize(imageCount);
+  vkGetSwapchainImagesKHR(device_, swapChain_, &imageCount,
+                          swapChainImages_.data());
+  swapChainImageFormat_ = surfaceFormat.format;
+  swapChainExtent_ = extent;
 }
 
 std::vector<const char*> Renderer::getRequiredExtensions() {
