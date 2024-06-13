@@ -57,6 +57,7 @@ class Renderer {
   std::vector<VkImageView> swapChainImageViews_;
   VkRenderPass renderPass_;
   VkPipelineLayout pipelineLayout_;
+  VkPipeline graphicsPipeline_;
 
   void init();
   void render();
