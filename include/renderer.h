@@ -55,6 +55,7 @@ class Renderer {
   VkFormat swapChainImageFormat_;
   VkExtent2D swapChainExtent_;
   std::vector<VkImageView> swapChainImageViews_;
+  VkRenderPass renderPass_;
   VkPipelineLayout pipelineLayout_;
 
   void init();
@@ -71,6 +72,7 @@ class Renderer {
   void createLogicalDevice();
   void createSwapChain();
   void createImageViews();
+  void createRenderPass();
   void createGraphicsPipeline();
 
   std::vector<const char*> getRequiredExtensions();
