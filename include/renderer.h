@@ -55,6 +55,7 @@ class Renderer {
   VkFormat swapChainImageFormat_;
   VkExtent2D swapChainExtent_;
   std::vector<VkImageView> swapChainImageViews_;
+  VkPipelineLayout pipelineLayout_;
 
   void init();
   void render();
