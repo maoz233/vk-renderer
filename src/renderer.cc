@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -112,6 +113,7 @@ void Renderer::initVulkan() {
   createLogicalDevice();
   createSwapChain();
   createImageViews();
+  createGraphicsPipeline();
 }
 
 void Renderer::createInstance() {
@@ -361,6 +363,11 @@ void Renderer::createImageViews() {
   }
 }
 
+void Renderer::createGraphicsPipeline() {
+  auto vertShaderCode = readFile("../../shaders/vert.spv");
+  auto fragShaderCode = readFile("../../shaders/frag.spv");
+}
+
 std::vector<const char*> Renderer::getRequiredExtensions() {
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions = nullptr;
@@ -601,6 +608,20 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(
   }
 
   return VK_FALSE;
+}
+
+std::vector<char> Renderer::readFile(const std::string& filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+  if (!file.is_open()) {
+    throw std::runtime_error("Failed to open file: " + filename + "!");
+  }
+
+  size_t fileSize = static_cast<size_t>(file.tellg());
+  std::vector<char> buffer(fileSize);
+
+  file.close();
+
+  return buffer;
 }
 
 }  // namespace vkr

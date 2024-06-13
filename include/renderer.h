@@ -11,6 +11,7 @@
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
 #include <optional>
+#include <string>
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
@@ -69,6 +70,7 @@ class Renderer {
   void createLogicalDevice();
   void createSwapChain();
   void createImageViews();
+  void createGraphicsPipeline();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
@@ -99,6 +101,7 @@ class Renderer {
                 VkDebugUtilsMessageTypeFlagsEXT messageType,
                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void* pUserData);
+  static std::vector<char> readFile(const std::string& filename);
 };
 
 }  // namespace vkr
