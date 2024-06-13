@@ -493,18 +493,6 @@ void Renderer::createGraphicsPipeline() {
   colorBlending.blendConstants[2] = 0.f;
   colorBlending.blendConstants[3] = 0.f;
 
-  // VkViewport viewport{};
-  // viewport.x = 0.f;
-  // viewport.y = 0.f;
-  // viewport.width = static_cast<float>(swapChainExtent_.width);
-  // viewport.height = static_cast<float>(swapChainExtent_.height);
-  // viewport.minDepth = 0.0f;
-  // viewport.maxDepth = 1.0f;
-
-  // VkRect2D scissor{};
-  // scissor.offset = {0, 0};
-  // scissor.extent = swapChainExtent_;
-
   std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT,
                                             VK_DYNAMIC_STATE_SCISSOR};
   VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -515,9 +503,7 @@ void Renderer::createGraphicsPipeline() {
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
   viewportState.viewportCount = 1;
-  // viewportState.pViewports = &viewport;
   viewportState.scissorCount = 1;
-  // viewportState.pScissors = &scissor;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -609,6 +595,57 @@ void Renderer::createCommandBuffer() {
       vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer_);
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to allocate command buffers!");
+  }
+}
+
+void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
+                                   uint32_t imageIndex) {
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = nullptr;
+
+  VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to begin recording command buffer!");
+  }
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = renderPass_;
+  renderPassInfo.framebuffer = swapChainFrameBuffers_[imageIndex];
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = swapChainExtent_;
+  VkClearValue clearColor = {{{0.f, 0.f, 0.f, 1.f}}};
+  renderPassInfo.clearValueCount = 1;
+  renderPassInfo.pClearValues = &clearColor;
+  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                       VK_SUBPASS_CONTENTS_INLINE);
+
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    graphicsPipeline_);
+
+  VkViewport viewport{};
+  viewport.x = 0.f;
+  viewport.y = 0.f;
+  viewport.width = static_cast<float>(swapChainExtent_.width);
+  viewport.height = static_cast<float>(swapChainExtent_.height);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = swapChainExtent_;
+  vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+  vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+  vkCmdEndRenderPass(commandBuffer);
+
+  result = vkEndCommandBuffer(commandBuffer);
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to record command buffer!");
   }
 }
 
