@@ -26,7 +26,7 @@ set(IMGUI_SOURCES
     lib/imgui-1.90.8/backends/imgui_impl_vulkan.cpp
 )
 
-file(GLOB SOURCES "src/*.cc")
+file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
 
