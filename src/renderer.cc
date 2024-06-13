@@ -366,6 +366,12 @@ void Renderer::createImageViews() {
 void Renderer::createGraphicsPipeline() {
   auto vertShaderCode = readFile("../../shaders/vert.spv");
   auto fragShaderCode = readFile("../../shaders/frag.spv");
+
+  VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+  VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+  vkDestroyShaderModule(device_, vertShaderModule, nullptr);
+  vkDestroyShaderModule(device_, fragShaderModule, nullptr);
 }
 
 std::vector<const char*> Renderer::getRequiredExtensions() {
@@ -500,6 +506,23 @@ VkExtent2D Renderer::chooseSwapExtent(
 
     return actualExtent;
   }
+}
+
+VkShaderModule Renderer::createShaderModule(const std::vector<char>& code) {
+  VkShaderModule shaderModule{};
+
+  VkShaderModuleCreateInfo createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  createInfo.codeSize = code.size();
+  createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+  VkResult result =
+      vkCreateShaderModule(device_, &createInfo, nullptr, &shaderModule);
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to create shader module!");
+  }
+
+  return shaderModule;
 }
 
 QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device) {
