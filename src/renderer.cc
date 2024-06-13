@@ -74,6 +74,7 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
+  vkDestroyCommandPool(device_, commandPool_, nullptr);
   for (auto framebuffer : swapChainFrameBuffers_) {
     vkDestroyFramebuffer(device_, framebuffer, nullptr);
   }
@@ -122,6 +123,7 @@ void Renderer::initVulkan() {
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
+  createCommandPool();
 }
 
 void Renderer::createInstance() {
@@ -577,6 +579,21 @@ void Renderer::createFramebuffers() {
     if (VK_SUCCESS != result) {
       throw std::runtime_error("Failed to create framebuffer!");
     }
+  }
+}
+
+void Renderer::createCommandPool() {
+  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice_);
+
+  VkCommandPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+  VkResult result =
+      vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool_);
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to create command pool!");
   }
 }
 
