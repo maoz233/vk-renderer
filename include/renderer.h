@@ -60,6 +60,7 @@ class Renderer {
   VkPipeline graphicsPipeline_;
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
   VkCommandPool commandPool_;
+  VkCommandBuffer commandBuffer_;
 
   void init();
   void render();
@@ -79,6 +80,7 @@ class Renderer {
   void createGraphicsPipeline();
   void createFramebuffers();
   void createCommandPool();
+  void createCommandBuffer();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();

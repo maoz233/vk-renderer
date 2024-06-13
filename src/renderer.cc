@@ -124,6 +124,7 @@ void Renderer::initVulkan() {
   createGraphicsPipeline();
   createFramebuffers();
   createCommandPool();
+  createCommandBuffer();
 }
 
 void Renderer::createInstance() {
@@ -594,6 +595,20 @@ void Renderer::createCommandPool() {
       vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool_);
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to create command pool!");
+  }
+}
+
+void Renderer::createCommandBuffer() {
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.commandPool = commandPool_;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = 1;
+
+  VkResult result =
+      vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer_);
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to allocate command buffers!");
   }
 }
 
