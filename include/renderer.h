@@ -61,6 +61,9 @@ class Renderer {
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
   VkCommandPool commandPool_;
   VkCommandBuffer commandBuffer_;
+  VkSemaphore imageAvailableSemaphore_;
+  VkSemaphore renderFinishiedSemephore_;
+  VkFence inFlightFence_;
 
   void init();
   void render();
@@ -68,6 +71,7 @@ class Renderer {
 
   void initWindow();
   void initVulkan();
+  void drawFrame();
 
   void createInstance();
   void setupDebugMessenger();
@@ -81,6 +85,7 @@ class Renderer {
   void createFramebuffers();
   void createCommandPool();
   void createCommandBuffer();
+  void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
   std::vector<const char*> getRequiredExtensions();
