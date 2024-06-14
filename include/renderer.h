@@ -60,10 +60,11 @@ class Renderer {
   VkPipeline graphicsPipeline_;
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
   VkCommandPool commandPool_;
-  VkCommandBuffer commandBuffer_;
-  VkSemaphore imageAvailableSemaphore_;
-  VkSemaphore renderFinishiedSemephore_;
-  VkFence inFlightFence_;
+  std::vector<VkCommandBuffer> commandBuffers_;
+  std::vector<VkSemaphore> imageAvailableSemaphores_;
+  std::vector<VkSemaphore> renderFinishiedSemephores_;
+  std::vector<VkFence> inFlightFences_;
+  uint32_t currentFrame_ = 0;
 
   void init();
   void render();
@@ -84,7 +85,7 @@ class Renderer {
   void createGraphicsPipeline();
   void createFramebuffers();
   void createCommandPool();
-  void createCommandBuffer();
+  void createCommandBuffers();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
