@@ -776,6 +776,9 @@ void Renderer::recreateSwapchain() {
   int height = 0;
   glfwGetFramebufferSize(window_, &width, &height);
   while (0 == width || 0 == height) {
+    if (glfwWindowShouldClose(window_)) {
+      return;
+    }
     glfwGetFramebufferSize(window_, &width, &height);
     glfwWaitEvents();
   }
