@@ -10,6 +10,7 @@
  */
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -19,7 +20,18 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include <glm/glm.hpp>
+
 namespace vkr {
+
+struct Vertex {
+  glm::vec2 pos;
+  glm::vec3 color;
+
+  static VkVertexInputBindingDescription getBindingDescription();
+  static std::array<VkVertexInputAttributeDescription, 2>
+  getAttributeDescriptions();
+};
 
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
@@ -60,6 +72,8 @@ class Renderer {
   VkPipeline graphicsPipeline_;
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
   VkCommandPool commandPool_;
+  VkBuffer vertexBuffer_;
+  VkDeviceMemory vertexBufferMemory_;
   std::vector<VkCommandBuffer> commandBuffers_;
   std::vector<VkSemaphore> imageAvailableSemaphores_;
   std::vector<VkSemaphore> renderFinishiedSemephores_;
@@ -87,6 +101,7 @@ class Renderer {
   void createFramebuffers();
   void createCommandPool();
   void createCommandBuffers();
+  void createVertexBuffer();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void recreateSwapchain();
@@ -104,6 +119,8 @@ class Renderer {
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
   VkShaderModule createShaderModule(const std::vector<char>& code);
   void cleanupSwapChain();
+  uint32_t findMemoryType(uint32_t typeFilter,
+                          VkMemoryPropertyFlags properties);
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
