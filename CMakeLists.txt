@@ -26,9 +26,30 @@ set(IMGUI_SOURCES
     lib/imgui-1.90.8/backends/imgui_impl_vulkan.cpp
 )
 
+file(GLOB SHADERS ${CMAKE_SOURCE_DIR}/shaders/*.spv)
+foreach(SHADER ${SHADERS})
+  get_filename_component(SHADER_NAME ${SHADER} NAME)
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SHADER} ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}
+    DEPENDS ${SHADER}
+  )
+  list(APPEND SHADER_TARGETS ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME})
+endforeach()
+set(COPY_SHADERS copy-shaders)
+add_custom_target(${COPY_SHADERS} ALL DEPENDS ${SHADER_TARGETS})
+
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cc)
 
+if(WIN32)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/)
+endif()
+
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
+add_dependencies(${PROJECT_NAME} ${COPY_SHADERS})
 
 include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_BINARY_DIR}
