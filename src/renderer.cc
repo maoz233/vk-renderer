@@ -77,6 +77,8 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
+  cleanupSwapChain();
+
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device_, imageAvailableSemaphores_[i], nullptr);
     vkDestroySemaphore(device_, renderFinishiedSemephores_[i], nullptr);
@@ -84,21 +86,20 @@ void Renderer::clean() {
   }
 
   vkDestroyCommandPool(device_, commandPool_, nullptr);
-  for (auto framebuffer : swapChainFrameBuffers_) {
-    vkDestroyFramebuffer(device_, framebuffer, nullptr);
-  }
+
+  vkDestroyRenderPass(device_, renderPass_, nullptr);
+
   vkDestroyPipeline(device_, graphicsPipeline_, nullptr);
   vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
-  vkDestroyRenderPass(device_, renderPass_, nullptr);
-  for (auto imageView : swapChainImageViews_) {
-    vkDestroyImageView(device_, imageView, nullptr);
-  }
-  vkDestroySwapchainKHR(device_, swapChain_, nullptr);
+
   vkDestroyDevice(device_, nullptr);
+
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
+
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(instance_, debugMessenger_, nullptr);
   }
+
   vkDestroyInstance(instance_, nullptr);
 
   glfwDestroyWindow(window_);
@@ -111,7 +112,6 @@ void Renderer::initWindow() {
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   window_ =
       glfwCreateWindow(VK_RENDERER_WINDOW_WIDTH, VK_RENDERER_WINDOW_HEIGHT,
@@ -119,6 +119,9 @@ void Renderer::initWindow() {
   if (!window_) {
     throw std::runtime_error("Failed to create GLFW window!");
   }
+
+  glfwSetWindowUserPointer(window_, this);
+  glfwSetFramebufferSizeCallback(window_, frameBufferResizeCallback);
 }
 
 void Renderer::initVulkan() {
@@ -140,14 +143,21 @@ void Renderer::initVulkan() {
 void Renderer::drawFrame() {
   vkWaitForFences(device_, 1, &inFlightFences_[currentFrame_], VK_TRUE,
                   UINT64_MAX);
-  vkResetFences(device_, 1, &inFlightFences_[currentFrame_]);
 
   uint32_t imageIndex = 0;
-  vkAcquireNextImageKHR(device_, swapChain_, UINT64_MAX,
-                        imageAvailableSemaphores_[currentFrame_],
-                        VK_NULL_HANDLE, &imageIndex);
-  vkResetCommandBuffer(commandBuffers_[currentFrame_], 0);
+  VkResult result = vkAcquireNextImageKHR(
+      device_, swapChain_, UINT64_MAX, imageAvailableSemaphores_[currentFrame_],
+      VK_NULL_HANDLE, &imageIndex);
+  if (VK_ERROR_OUT_OF_DATE_KHR == result) {
+    recreateSwapchain();
+    return;
+  } else if (VK_SUCCESS != result && VK_SUBOPTIMAL_KHR != result) {
+    throw std::runtime_error("Failed to acquire swap chain image!");
+  }
 
+  vkResetFences(device_, 1, &inFlightFences_[currentFrame_]);
+
+  vkResetCommandBuffer(commandBuffers_[currentFrame_], 0);
   recordCommandBuffer(commandBuffers_[currentFrame_], imageIndex);
 
   VkSubmitInfo submitInfo{};
@@ -167,8 +177,8 @@ void Renderer::drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  VkResult result = vkQueueSubmit(graphicsQueue_, 1, &submitInfo,
-                                  inFlightFences_[currentFrame_]);
+  result = vkQueueSubmit(graphicsQueue_, 1, &submitInfo,
+                         inFlightFences_[currentFrame_]);
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to submit draw command buffer!");
   }
@@ -184,7 +194,13 @@ void Renderer::drawFrame() {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;
 
-  vkQueuePresentKHR(presentQueue_, &presentInfo);
+  result = vkQueuePresentKHR(presentQueue_, &presentInfo);
+  if (VK_ERROR_OUT_OF_DATE_KHR == result || VK_SUBOPTIMAL_KHR == result ||
+      framebufferResized) {
+    recreateSwapchain();
+  } else if (VK_SUCCESS != result) {
+    throw std::runtime_error("Failed to present swap chain image!");
+  }
 
   currentFrame_ = (currentFrame_ + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -755,6 +771,24 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
+void Renderer::recreateSwapchain() {
+  int width = 0;
+  int height = 0;
+  glfwGetFramebufferSize(window_, &width, &height);
+  while (0 == width || 0 == height) {
+    glfwGetFramebufferSize(window_, &width, &height);
+    glfwWaitEvents();
+  }
+
+  vkDeviceWaitIdle(device_);
+
+  cleanupSwapChain();
+
+  createSwapChain();
+  createImageViews();
+  createFramebuffers();
+}
+
 std::vector<const char*> Renderer::getRequiredExtensions() {
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions = nullptr;
@@ -906,6 +940,18 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code) {
   return shaderModule;
 }
 
+void Renderer::cleanupSwapChain() {
+  for (size_t i = 0; i < swapChainFrameBuffers_.size(); ++i) {
+    vkDestroyFramebuffer(device_, swapChainFrameBuffers_[i], nullptr);
+  }
+
+  for (size_t i = 0; i < swapChainImageViews_.size(); ++i) {
+    vkDestroyImageView(device_, swapChainImageViews_[i], nullptr);
+  }
+
+  vkDestroySwapchainKHR(device_, swapChain_, nullptr);
+}
+
 QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices{};
 
@@ -1030,4 +1076,9 @@ std::vector<char> Renderer::readFile(const std::string& filename) {
   return buffer;
 }
 
+void Renderer::frameBufferResizeCallback(GLFWwindow* window, int width,
+                                         int height) {
+  auto renderer = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
+  renderer->framebufferResized = true;
+}
 }  // namespace vkr

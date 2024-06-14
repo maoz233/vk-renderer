@@ -65,6 +65,7 @@ class Renderer {
   std::vector<VkSemaphore> renderFinishiedSemephores_;
   std::vector<VkFence> inFlightFences_;
   uint32_t currentFrame_ = 0;
+  bool framebufferResized = false;
 
   void init();
   void render();
@@ -88,6 +89,7 @@ class Renderer {
   void createCommandBuffers();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+  void recreateSwapchain();
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
@@ -101,6 +103,7 @@ class Renderer {
       const std::vector<VkPresentModeKHR>& availablePresentModes);
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
   VkShaderModule createShaderModule(const std::vector<char>& code);
+  void cleanupSwapChain();
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -120,6 +123,8 @@ class Renderer {
                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void* pUserData);
   static std::vector<char> readFile(const std::string& filename);
+  static void frameBufferResizeCallback(GLFWwindow* window, int width,
+                                        int height);
 };
 
 }  // namespace vkr
