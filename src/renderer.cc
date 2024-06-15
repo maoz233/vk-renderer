@@ -694,15 +694,28 @@ void Renderer::createFramebuffers() {
 
 void Renderer::createVertexBuffer() {
   VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-  createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+
+  VkBuffer stagingBuffer{};
+  VkDeviceMemory stagingBufferMemory{};
+  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               vertexBuffer_, vertexBufferMemory_);
+               stagingBuffer, stagingBufferMemory);
 
   void* data = nullptr;
-  vkMapMemory(device_, vertexBufferMemory_, 0, bufferSize, 0, &data);
+  vkMapMemory(device_, stagingBufferMemory, 0, bufferSize, 0, &data);
   memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-  vkUnmapMemory(device_, vertexBufferMemory_);
+  vkUnmapMemory(device_, stagingBufferMemory);
+
+  createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer_, vertexBufferMemory_);
+
+  copyBuffer(stagingBuffer, vertexBuffer_, bufferSize);
+
+  vkDestroyBuffer(device_, stagingBuffer, nullptr);
+  vkFreeMemory(device_, stagingBufferMemory, nullptr);
 }
 
 void Renderer::createCommandPool() {
@@ -1036,6 +1049,42 @@ void Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
   }
 
   vkBindBufferMemory(device_, buffer, bufferMemory, 0);
+}
+
+void Renderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
+                          VkDeviceSize size) {
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = commandPool_;
+  allocInfo.commandBufferCount = 1;
+
+  VkCommandBuffer commandBuffer{};
+  vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+  VkBufferCopy copyRegion{};
+  copyRegion.srcOffset = 0;
+  copyRegion.dstOffset = 0;
+  copyRegion.size = size;
+  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+  vkEndCommandBuffer(commandBuffer);
+
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  vkQueueSubmit(graphicsQueue_, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(graphicsQueue_);
+
+  vkFreeCommandBuffers(device_, commandPool_, 1, &commandBuffer);
 }
 
 QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device) {
