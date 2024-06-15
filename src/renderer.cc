@@ -48,9 +48,12 @@ const bool enableValidationLayers = true;
 
 const std::vector<const char*> validationLayers{"VK_LAYER_KHRONOS_validation"};
 
-const std::vector<Vertex> vertices = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                      {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                      {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                      {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+
+const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
 
 VkVertexInputBindingDescription Vertex::getBindingDescription() {
   VkVertexInputBindingDescription bindingDescription{};
@@ -106,6 +109,9 @@ void Renderer::render() {
 
 void Renderer::clean() {
   cleanupSwapChain();
+
+  vkDestroyBuffer(device_, indexBuffer_, nullptr);
+  vkFreeMemory(device_, indexBufferMemory_, nullptr);
 
   vkDestroyBuffer(device_, vertexBuffer_, nullptr);
   vkFreeMemory(device_, vertexBufferMemory_, nullptr);
@@ -168,6 +174,7 @@ void Renderer::initVulkan() {
   createFramebuffers();
   createCommandPool();
   createVertexBuffer();
+  createIndexBufffer();
   createCommandBuffers();
   createSyncObjects();
 }
@@ -718,6 +725,32 @@ void Renderer::createVertexBuffer() {
   vkFreeMemory(device_, stagingBufferMemory, nullptr);
 }
 
+void Renderer::createIndexBufffer() {
+  VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+  VkBuffer stagingBuffer{};
+  VkDeviceMemory stagingBufferMemory{};
+  createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+               stagingBuffer, stagingBufferMemory);
+
+  void* data = nullptr;
+  vkMapMemory(device_, stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+  vkUnmapMemory(device_, stagingBufferMemory);
+
+  createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer_, indexBufferMemory_);
+
+  copyBuffer(stagingBuffer, indexBuffer_, bufferSize);
+
+  vkDestroyBuffer(device_, stagingBuffer, nullptr);
+  vkFreeMemory(device_, stagingBufferMemory, nullptr);
+}
+
 void Renderer::createCommandPool() {
   QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice_);
 
@@ -812,6 +845,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer_, 0, VK_INDEX_TYPE_UINT16);
+
   VkViewport viewport{};
   viewport.x = 0.f;
   viewport.y = 0.f;
@@ -826,7 +861,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   scissor.extent = swapChainExtent_;
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
+                   0, 0);
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -948,7 +984,7 @@ int Renderer::rateDeviceSuitability(VkPhysicalDevice device) {
 VkSurfaceFormatKHR Renderer::chooseSwapSurfaceFormat(
     const std::vector<VkSurfaceFormatKHR>& availableFormats) {
   for (const auto& availableFormat : availableFormats) {
-    if (VK_FORMAT_B8G8R8_SRGB == availableFormat.format &&
+    if (VK_FORMAT_B8G8R8A8_SRGB == availableFormat.format &&
         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR == availableFormat.colorSpace) {
       return availableFormat;
     }

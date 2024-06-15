@@ -74,6 +74,8 @@ class Renderer {
   VkCommandPool commandPool_;
   VkBuffer vertexBuffer_;
   VkDeviceMemory vertexBufferMemory_;
+  VkBuffer indexBuffer_;
+  VkDeviceMemory indexBufferMemory_;
   std::vector<VkCommandBuffer> commandBuffers_;
   std::vector<VkSemaphore> imageAvailableSemaphores_;
   std::vector<VkSemaphore> renderFinishiedSemephores_;
@@ -102,6 +104,7 @@ class Renderer {
   void createCommandPool();
   void createCommandBuffers();
   void createVertexBuffer();
+  void createIndexBufffer();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void recreateSwapchain();
