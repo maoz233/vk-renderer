@@ -33,6 +33,12 @@ struct Vertex {
   getAttributeDescriptions();
 };
 
+struct UniformBufferObject {
+  glm::mat4 model;
+  glm::mat4 view;
+  glm::mat4 proj;
+};
+
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
   std::optional<uint32_t> presentFamily;
@@ -68,6 +74,7 @@ class Renderer {
   VkExtent2D swapChainExtent_;
   std::vector<VkImageView> swapChainImageViews_;
   VkRenderPass renderPass_;
+  VkDescriptorSetLayout descriptorSetLayout_;
   VkPipelineLayout pipelineLayout_;
   VkPipeline graphicsPipeline_;
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
@@ -76,6 +83,11 @@ class Renderer {
   VkDeviceMemory vertexBufferMemory_;
   VkBuffer indexBuffer_;
   VkDeviceMemory indexBufferMemory_;
+  std::vector<VkBuffer> uniformBuffers_;
+  std::vector<VkDeviceMemory> uniformBuffersMemory_;
+  std::vector<void*> uniformBuffersMapped_;
+  VkDescriptorPool descriptorPool_;
+  std::vector<VkDescriptorSet> descriptorSets_;
   std::vector<VkCommandBuffer> commandBuffers_;
   std::vector<VkSemaphore> imageAvailableSemaphores_;
   std::vector<VkSemaphore> renderFinishiedSemephores_;
@@ -99,15 +111,20 @@ class Renderer {
   void createSwapChain();
   void createImageViews();
   void createRenderPass();
+  void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void createFramebuffers();
   void createCommandPool();
   void createCommandBuffers();
   void createVertexBuffer();
   void createIndexBufffer();
+  void createUniformBuffers();
+  void createDescriptorPool();
+  void createDescriptorSets();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void recreateSwapchain();
+  void updateUniformBuffer(uint32_t currentFrame);
 
   std::vector<const char*> getRequiredExtensions();
   bool checkValidationLayerSupport();
