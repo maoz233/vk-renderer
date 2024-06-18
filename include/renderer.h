@@ -86,6 +86,8 @@ class Renderer {
   std::vector<VkBuffer> uniformBuffers_;
   std::vector<VkDeviceMemory> uniformBuffersMemory_;
   std::vector<void*> uniformBuffersMapped_;
+  VkImage textureImage_;
+  VkDeviceMemory textureImageMemory_;
   VkDescriptorPool descriptorPool_;
   std::vector<VkDescriptorSet> descriptorSets_;
   std::vector<VkCommandBuffer> commandBuffers_;
@@ -115,12 +117,13 @@ class Renderer {
   void createGraphicsPipeline();
   void createFramebuffers();
   void createCommandPool();
-  void createCommandBuffers();
   void createVertexBuffer();
   void createIndexBufffer();
   void createUniformBuffers();
+  void createTextureImage();
   void createDescriptorPool();
   void createDescriptorSets();
+  void createCommandBuffers();
   void createSyncObjects();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void recreateSwapchain();
@@ -143,12 +146,22 @@ class Renderer {
                     VkMemoryPropertyFlags properties, VkBuffer& buffer,
                     VkDeviceMemory& bufferMemory);
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+  void createImage(uint32_t width, uint32_t height, VkFormat format,
+                   VkImageTiling tiling, VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties, VkImage& image,
+                   VkDeviceMemory& imageMemory);
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout);
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                         uint32_t height);
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails querySwapChainSupprt(VkPhysicalDevice device);
   uint32_t findMemoryType(uint32_t typeFilter,
                           VkMemoryPropertyFlags properties);
+  VkCommandBuffer beginSingleTimeCommands();
+  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
