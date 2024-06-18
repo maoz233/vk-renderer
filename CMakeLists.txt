@@ -39,6 +39,19 @@ endforeach()
 set(COPY_SHADERS copy-shaders)
 add_custom_target(${COPY_SHADERS} ALL DEPENDS ${SHADER_TARGETS})
 
+file(GLOB TEXTURES ${CMAKE_SOURCE_DIR}/textures/*)
+foreach(TEXTURE ${TEXTURES})
+  get_filename_component(TEXTURE_NAME ${TEXTURE} NAME)
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TEXTURE} ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME}
+    DEPENDS ${TEXTURE}
+  )
+  list(APPEND TEXTURE_TARGETS ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME})
+endforeach()
+set(COPY_TEXTURE copy-textures)
+add_custom_target(${COPY_TEXTURE} ALL DEPENDS ${TEXTURE_TARGETS})
+
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cc)
 
 if(WIN32)
@@ -49,7 +62,7 @@ if(WIN32)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
-add_dependencies(${PROJECT_NAME} ${COPY_SHADERS})
+add_dependencies(${PROJECT_NAME} ${COPY_SHADERS} ${COPY_TEXTURE})
 
 include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_BINARY_DIR}
@@ -57,6 +70,7 @@ include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/glm-1.0.1
   ${CMAKE_SOURCE_DIR}/lib/imgui-1.90.8
   ${CMAKE_SOURCE_DIR}/lib/imgui-1.90.8/backends
+  ${CMAKE_SOURCE_DIR}/lib/stb
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
