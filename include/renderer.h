@@ -87,7 +87,9 @@ class Renderer {
   std::vector<VkDeviceMemory> uniformBuffersMemory_;
   std::vector<void*> uniformBuffersMapped_;
   VkImage textureImage_;
-  VkDeviceMemory textureImageMemory_;
+    VkDeviceMemory textureImageMemory_;
+  VkImageView textureImageView_;
+VkSampler textureSampler_;
   VkDescriptorPool descriptorPool_;
   std::vector<VkDescriptorSet> descriptorSets_;
   std::vector<VkCommandBuffer> commandBuffers_;
@@ -121,6 +123,8 @@ class Renderer {
   void createIndexBufffer();
   void createUniformBuffers();
   void createTextureImage();
+  void createTextureImageView();
+  void createTextureSampler();
   void createDescriptorPool();
   void createDescriptorSets();
   void createCommandBuffers();
@@ -154,6 +158,7 @@ class Renderer {
                              VkImageLayout oldLayout, VkImageLayout newLayout);
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                          uint32_t height);
+  VkImageView createImageView(VkImage image, VkFormat format);
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
