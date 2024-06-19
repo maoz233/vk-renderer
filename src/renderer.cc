@@ -34,6 +34,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define VK_RENDERER_IMGUI
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #include "config.h"
 
 namespace vkr {
@@ -111,6 +116,7 @@ void Renderer::run() {
 void Renderer::init() {
   initWindow();
   initVulkan();
+  initImGui();
 }
 
 void Renderer::render() {
@@ -123,6 +129,10 @@ void Renderer::render() {
 }
 
 void Renderer::clean() {
+  ImGui_ImplVulkan_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
   cleanupSwapChain();
 
   vkDestroySampler(device_, textureSampler_, nullptr);
@@ -214,6 +224,37 @@ void Renderer::initVulkan() {
   createSyncObjects();
 }
 
+void Renderer::initImGui() {
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+  ImGui::StyleColorsDark();
+
+  ImGui_ImplGlfw_InitForVulkan(window_, true);
+  ImGui_ImplVulkan_InitInfo initInfo{};
+  initInfo.Instance = instance_;
+  initInfo.PhysicalDevice = physicalDevice_;
+  initInfo.Device = device_;
+
+  QueueFamilyIndices indices = findQueueFamilies(physicalDevice_);
+  initInfo.QueueFamily = indices.graphicsFamily.value();
+
+  initInfo.Queue = graphicsQueue_;
+  initInfo.PipelineCache = VK_NULL_HANDLE;
+  initInfo.DescriptorPool = descriptorPool_;
+  initInfo.RenderPass = renderPass_;
+  initInfo.Subpass = 0;
+  initInfo.MinImageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  initInfo.ImageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  initInfo.Allocator = nullptr;
+  initInfo.CheckVkResultFn = checkVKResult;
+
+  ImGui_ImplVulkan_Init(&initInfo);
+}
+
 void Renderer::drawFrame() {
   vkWaitForFences(device_, 1, &inFlightFences_[currentFrame_], VK_TRUE,
                   UINT64_MAX);
@@ -233,8 +274,24 @@ void Renderer::drawFrame() {
 
   updateUniformBuffer(currentFrame_);
 
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+
+  // ImGui::ShowDemoWindow();
+
+  ImGui::Begin("Profiler");
+
+  ImGuiIO& io = ImGui::GetIO();
+  ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate,
+              io.Framerate);
+  ImGui::End();
+
+  ImGui::Render();
+  ImDrawData* drawData = ImGui::GetDrawData();
+
   vkResetCommandBuffer(commandBuffers_[currentFrame_], 0);
-  recordCommandBuffer(commandBuffers_[currentFrame_], imageIndex);
+  recordCommandBuffer(commandBuffers_[currentFrame_], imageIndex, drawData);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -934,13 +991,15 @@ void Renderer::createDescriptorPool() {
   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
   poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  poolSizes[1].descriptorCount =
+      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT + 1);
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT + 1);
 
   VkResult result =
       vkCreateDescriptorPool(device_, &poolInfo, nullptr, &descriptorPool_);
@@ -1039,7 +1098,7 @@ void Renderer::createSyncObjects() {
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
-                                   uint32_t imageIndex) {
+                                   uint32_t imageIndex, ImDrawData* drawData) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -1091,6 +1150,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
                    0, 0);
+
+  ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -1659,5 +1720,11 @@ void Renderer::frameBufferResizeCallback(GLFWwindow* window, int width,
                                          int height) {
   auto renderer = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
   renderer->framebufferResized = true;
+}
+
+void Renderer::checkVKResult(VkResult result) {
+  if (VK_SUCCESS != result) {
+    throw std::runtime_error("Vulkan result: " + std::to_string(result) + "!");
+  }
 }
 }  // namespace vkr

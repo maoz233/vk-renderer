@@ -22,6 +22,9 @@
 
 #include <glm/glm.hpp>
 
+#define VK_RENDERER_IMGUI
+#include <imgui.h>
+
 namespace vkr {
 
 struct Vertex {
@@ -106,6 +109,7 @@ class Renderer {
 
   void initWindow();
   void initVulkan();
+  void initImGui();
   void drawFrame();
 
   void createInstance();
@@ -130,7 +134,8 @@ class Renderer {
   void createDescriptorSets();
   void createCommandBuffers();
   void createSyncObjects();
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex,
+                           ImDrawData* drawData);
   void recreateSwapchain();
   void updateUniformBuffer(uint32_t currentFrame);
 
@@ -185,6 +190,7 @@ class Renderer {
   static std::vector<char> readFile(const std::string& filename);
   static void frameBufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
+  static void checkVKResult(VkResult result);
 };
 
 }  // namespace vkr
