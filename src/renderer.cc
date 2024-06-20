@@ -216,8 +216,9 @@ void Renderer::initVulkan() {
   createRenderPass();
   createDescriptorSetLayout();
   createGraphicsPipeline();
-  createFramebuffers();
   createCommandPool();
+  createDepthResources();
+  createFramebuffers();
   createVertexBuffer();
   createIndexBufffer();
   createUniformBuffers();
@@ -569,8 +570,8 @@ void Renderer::createSwapChain() {
 void Renderer::createImageViews() {
   swapChainImageViews_.resize(swapChainImages_.size());
   for (size_t i = 0; i < swapChainImages_.size(); ++i) {
-    swapChainImageViews_[i] =
-        createImageView(swapChainImages_[i], swapChainImageFormat_);
+    swapChainImageViews_[i] = createImageView(
+        swapChainImages_[i], swapChainImageFormat_, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
 
@@ -589,23 +590,45 @@ void Renderer::createRenderPass() {
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+  VkAttachmentDescription depthAttachment{};
+  depthAttachment.format = findDepthFormat();
+  depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  depthAttachment.finalLayout =
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+  VkAttachmentReference depthAttachmentRef{};
+  depthAttachmentRef.attachment = 1;
+  depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+  std::array<VkAttachmentDescription, 2> attachments{colorAttachment,
+                                                     depthAttachment};
+
   VkSubpassDescription subpass{};
   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &colorAttachmentRef;
+  subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
   VkSubpassDependency dependency{};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   dependency.srcAccessMask = 0;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassInfo.attachmentCount = 1;
-  renderPassInfo.pAttachments = &colorAttachment;
+  renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+  renderPassInfo.pAttachments = attachments.data();
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
   renderPassInfo.dependencyCount = 1;
@@ -713,6 +736,19 @@ void Renderer::createGraphicsPipeline() {
   multisampling.alphaToCoverageEnable = VK_FALSE;
   multisampling.alphaToOneEnable = VK_FALSE;
 
+  VkPipelineDepthStencilStateCreateInfo depthStencil{};
+  depthStencil.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencil.depthTestEnable = VK_TRUE;
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+  depthStencil.depthBoundsTestEnable = VK_FALSE;
+  depthStencil.minDepthBounds = 0.0f;
+  depthStencil.maxDepthBounds = 1.0f;
+  depthStencil.stencilTestEnable = VK_FALSE;
+  depthStencil.front = {};
+  depthStencil.back = {};
+
   VkPipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask =
       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -771,7 +807,7 @@ void Renderer::createGraphicsPipeline() {
   pipelineInfo.pViewportState = &viewportState;
   pipelineInfo.pRasterizationState = &rasterizer;
   pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr;
+  pipelineInfo.pDepthStencilState = &depthStencil;
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
   pipelineInfo.layout = pipelineLayout_;
@@ -790,17 +826,31 @@ void Renderer::createGraphicsPipeline() {
   vkDestroyShaderModule(device_, fragShaderModule, nullptr);
 }
 
+void Renderer::createDepthResources() {
+  VkFormat depthFormat = findDepthFormat();
+
+  createImage(
+      swapChainExtent_.width, swapChainExtent_.height, depthFormat,
+      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage_, depthImageMemory_);
+  depthImageView_ =
+      createImageView(depthImage_, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+  transitionImageLayout(depthImage_, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
 void Renderer::createFramebuffers() {
   swapChainFrameBuffers_.resize(swapChainImageViews_.size());
 
   for (size_t i = 0; i < swapChainImageViews_.size(); ++i) {
-    VkImageView attachments[] = {swapChainImageViews_[i]};
+    std::array<VkImageView, 2> attachments{swapChainImageViews_[i],
+                                           depthImageView_};
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass = renderPass_;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = attachments;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = attachments.data();
     framebufferInfo.width = swapChainExtent_.width;
     framebufferInfo.height = swapChainExtent_.height;
     framebufferInfo.layers = 1;
@@ -960,7 +1010,8 @@ void Renderer::createTextureImage() {
 }
 
 void Renderer::createTextureImageView() {
-  textureImageView_ = createImageView(textureImage_, VK_FORMAT_R8G8B8A8_SRGB);
+  textureImageView_ = createImageView(textureImage_, VK_FORMAT_R8G8B8A8_SRGB,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Renderer::createTextureSampler() {
@@ -1121,9 +1172,14 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   renderPassInfo.framebuffer = swapChainFrameBuffers_[imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = swapChainExtent_;
-  VkClearValue clearColor = {{{0.f, 0.f, 0.f, 1.f}}};
-  renderPassInfo.clearValueCount = 1;
-  renderPassInfo.pClearValues = &clearColor;
+
+  std::array<VkClearValue, 2> clearValues{};
+  clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+  clearValues[1].depthStencil = {1.0f, 0};
+
+  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+  renderPassInfo.pClearValues = clearValues.data();
+
   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
                        VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1185,6 +1241,7 @@ void Renderer::recreateSwapchain() {
 
   createSwapChain();
   createImageViews();
+  createDepthResources();
   createFramebuffers();
 }
 
@@ -1367,6 +1424,10 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code) {
 }
 
 void Renderer::cleanupSwapChain() {
+  vkDestroyImageView(device_, depthImageView_, nullptr);
+  vkDestroyImage(device_, depthImage_, nullptr);
+  vkFreeMemory(device_, depthImageMemory_, nullptr);
+
   for (size_t i = 0; i < swapChainFrameBuffers_.size(); ++i) {
     vkDestroyFramebuffer(device_, swapChainFrameBuffers_[i], nullptr);
   }
@@ -1475,7 +1536,17 @@ void Renderer::transitionImageLayout(VkImage image, VkFormat format,
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = image;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+  if (VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL == newLayout) {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    if (hasStencilComponent(format)) {
+      barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+  } else {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
@@ -1498,6 +1569,14 @@ void Renderer::transitionImageLayout(VkImage image, VkFormat format,
 
     sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if (VK_IMAGE_LAYOUT_UNDEFINED == oldLayout &&
+             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL == newLayout) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
     throw std::invalid_argument("Unsupported layout transition!");
   }
@@ -1529,13 +1608,14 @@ void Renderer::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
   endSingleTimeCommands(commandBuffer);
 }
 
-VkImageView Renderer::createImageView(VkImage image, VkFormat format) {
+VkImageView Renderer::createImageView(VkImage image, VkFormat format,
+                                      VkImageAspectFlags aspectFlags) {
   VkImageViewCreateInfo viewInfo{};
   viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   viewInfo.image = image;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = format;
-  viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
   viewInfo.subresourceRange.baseMipLevel = 0;
   viewInfo.subresourceRange.levelCount = 1;
   viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -1549,6 +1629,18 @@ VkImageView Renderer::createImageView(VkImage image, VkFormat format) {
   }
 
   return imageView;
+}
+
+VkFormat Renderer::findDepthFormat() {
+  return findSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+       VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
+bool Renderer::hasStencilComponent(VkFormat format) {
+  return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+         format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device) {
@@ -1669,6 +1761,25 @@ void Renderer::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
   vkQueueWaitIdle(graphicsQueue_);
 
   vkFreeCommandBuffers(device_, commandPool_, 1, &commandBuffer);
+}
+
+VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates,
+                                       VkImageTiling tiling,
+                                       VkFormatFeatureFlags features) {
+  for (VkFormat format : candidates) {
+    VkFormatProperties props{};
+    vkGetPhysicalDeviceFormatProperties(physicalDevice_, format, &props);
+
+    if (VK_IMAGE_TILING_LINEAR == tiling &&
+        (props.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (VK_IMAGE_TILING_OPTIMAL == tiling &&
+               (props.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+
+  throw std::runtime_error("Failed to find support format!");
 }
 
 VkResult Renderer::CreateDebugUtilsMessengerEXT(

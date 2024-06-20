@@ -90,6 +90,9 @@ class Renderer {
   std::vector<VkBuffer> uniformBuffers_;
   std::vector<VkDeviceMemory> uniformBuffersMemory_;
   std::vector<void*> uniformBuffersMapped_;
+  VkImage depthImage_;
+  VkDeviceMemory depthImageMemory_;
+  VkImageView depthImageView_;
   VkImage textureImage_;
   VkDeviceMemory textureImageMemory_;
   VkImageView textureImageView_;
@@ -122,8 +125,9 @@ class Renderer {
   void createRenderPass();
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
-  void createFramebuffers();
   void createCommandPool();
+  void createDepthResources();
+  void createFramebuffers();
   void createVertexBuffer();
   void createIndexBufffer();
   void createUniformBuffers();
@@ -164,7 +168,10 @@ class Renderer {
                              VkImageLayout oldLayout, VkImageLayout newLayout);
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                          uint32_t height);
-  VkImageView createImageView(VkImage image, VkFormat format);
+  VkImageView createImageView(VkImage image, VkFormat format,
+                              VkImageAspectFlags aspectFlags);
+  VkFormat findDepthFormat();
+  bool hasStencilComponent(VkFormat format);
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -173,6 +180,9 @@ class Renderer {
                           VkMemoryPropertyFlags properties);
   VkCommandBuffer beginSingleTimeCommands();
   void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+                               VkImageTiling tiling,
+                               VkFormatFeatureFlags features);
 
   static VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
