@@ -303,6 +303,8 @@ void Renderer::drawFrame() {
   ImGuiIO& io = ImGui::GetIO();
   ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate,
               io.Framerate);
+  ImGui::Text("Multisapling Count: %d", static_cast<int32_t>(msaaSamples_));
+
   ImGui::End();
 
   ImGui::Render();
