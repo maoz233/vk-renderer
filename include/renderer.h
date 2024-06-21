@@ -71,6 +71,7 @@ class Renderer {
   VkDebugUtilsMessengerEXT debugMessenger_;
   VkSurfaceKHR surface_;
   VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
+  VkSampleCountFlagBits msaaSamples_ = VK_SAMPLE_COUNT_1_BIT;
   VkDevice device_;
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
@@ -94,6 +95,9 @@ class Renderer {
   std::vector<VkBuffer> uniformBuffers_;
   std::vector<VkDeviceMemory> uniformBuffersMemory_;
   std::vector<void*> uniformBuffersMapped_;
+  VkImage colorImage_;
+  VkDeviceMemory colorImageMemory_;
+  VkImageView colorImageView_;
   VkImage depthImage_;
   VkDeviceMemory depthImageMemory_;
   VkImageView depthImageView_;
@@ -131,6 +135,7 @@ class Renderer {
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void createCommandPool();
+  void createColorResources();
   void createDepthResources();
   void createFramebuffers();
   void loadModel();
@@ -167,9 +172,10 @@ class Renderer {
                     VkDeviceMemory& bufferMemory);
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
   void createImage(uint32_t width, uint32_t height, uint32_t mipLevels,
-                   VkFormat format, VkImageTiling tiling,
-                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                   VkImage& image, VkDeviceMemory& imageMemory);
+                   VkSampleCountFlagBits numSamples, VkFormat format,
+                   VkImageTiling tiling, VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties, VkImage& image,
+                   VkDeviceMemory& imageMemory);
   void transitionImageLayout(VkImage image, VkFormat format,
                              VkImageLayout oldLayout, VkImageLayout newLayout,
                              uint32_t mipLevels);
@@ -182,6 +188,7 @@ class Renderer {
                               uint32_t mipLevels);
   VkFormat findDepthFormat();
   bool hasStencilComponent(VkFormat format);
+  VkSampleCountFlagBits getMaxUsableSampleCount();
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
