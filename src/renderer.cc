@@ -20,6 +20,7 @@
 #include <optional>
 #include <set>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
@@ -31,16 +32,33 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#define VK_RENDERER_IMGUI
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <stb_image.h>
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 
 #include "config.h"
+
+namespace std {
+template <>
+
+struct hash<vkr::Vertex> {
+  size_t operator()(vkr::Vertex const& vertex) const {
+    return ((hash<glm::vec3>()(vertex.pos) ^
+             (hash<glm::vec3>()(vertex.color) << 1)) >>
+            1) ^
+           (hash<glm::vec2>()(vertex.texCoord) << 1);
+  }
+};
+
+}  // namespace std
 
 namespace vkr {
 
@@ -61,19 +79,6 @@ const bool enableValidationLayers = true;
 #endif
 
 const std::vector<const char*> validationLayers{"VK_LAYER_KHRONOS_validation"};
-
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
-
-const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
 VkVertexInputBindingDescription Vertex::getBindingDescription() {
   VkVertexInputBindingDescription bindingDescription{};
@@ -103,6 +108,10 @@ Vertex::getAttributeDescriptions() {
   attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
   return attributeDescriptions;
+}
+
+bool Vertex::operator==(const Vertex& other) const {
+  return pos == other.pos && color == other.color && texCoord == other.texCoord;
 }
 
 bool QueueFamilyIndices::isComplete() {
@@ -219,6 +228,7 @@ void Renderer::initVulkan() {
   createCommandPool();
   createDepthResources();
   createFramebuffers();
+  loadModel();
   createVertexBuffer();
   createIndexBufffer();
   createUniformBuffers();
@@ -863,8 +873,44 @@ void Renderer::createFramebuffers() {
   }
 }
 
+void Renderer::loadModel() {
+  tinyobj::attrib_t attrib{};
+  std::vector<tinyobj::shape_t> shapes{};
+  std::vector<tinyobj::material_t> materials{};
+  std::string warn{};
+  std::string err{};
+  std::string path{VK_RENDERER_MODEL_PATH};
+
+  bool result =
+      tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str());
+  if (!result) {
+    throw std::runtime_error(warn + err);
+  }
+
+  std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+  for (const auto& shape : shapes) {
+    for (const auto& index : shape.mesh.indices) {
+      Vertex vertex{};
+      vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]};
+      vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
+                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
+      vertex.color = {1.0f, 1.0f, 1.0f};
+
+      if (0 == uniqueVertices.count(vertex)) {
+        uniqueVertices[vertex] = static_cast<uint32_t>(vertices_.size());
+        vertices_.push_back(vertex);
+      }
+
+      indices_.push_back(uniqueVertices[vertex]);
+    }
+  }
+}
+
 void Renderer::createVertexBuffer() {
-  VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+  VkDeviceSize bufferSize = sizeof(vertices_[0]) * vertices_.size();
 
   VkBuffer stagingBuffer{};
   VkDeviceMemory stagingBufferMemory{};
@@ -875,7 +921,7 @@ void Renderer::createVertexBuffer() {
 
   void* data = nullptr;
   vkMapMemory(device_, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
+  memcpy(data, vertices_.data(), static_cast<size_t>(bufferSize));
   vkUnmapMemory(device_, stagingBufferMemory);
 
   createBuffer(
@@ -890,7 +936,7 @@ void Renderer::createVertexBuffer() {
 }
 
 void Renderer::createIndexBufffer() {
-  VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+  VkDeviceSize bufferSize = sizeof(indices_[0]) * indices_.size();
 
   VkBuffer stagingBuffer{};
   VkDeviceMemory stagingBufferMemory{};
@@ -901,7 +947,7 @@ void Renderer::createIndexBufffer() {
 
   void* data = nullptr;
   vkMapMemory(device_, stagingBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+  memcpy(data, indices_.data(), static_cast<size_t>(bufferSize));
   vkUnmapMemory(device_, stagingBufferMemory);
 
   createBuffer(
@@ -968,7 +1014,7 @@ void Renderer::createTextureImage() {
   int texWidth = 0;
   int texHeight = 0;
   int texChannels = 0;
-  stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight,
+  stbi_uc* pixels = stbi_load(VK_RENDERER_TEXTURE_PATH, &texWidth, &texHeight,
                               &texChannels, STBI_rgb_alpha);
   VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1190,7 +1236,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-  vkCmdBindIndexBuffer(commandBuffer, indexBuffer_, 0, VK_INDEX_TYPE_UINT16);
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer_, 0, VK_INDEX_TYPE_UINT32);
 
   VkViewport viewport{};
   viewport.x = 0.f;
@@ -1210,7 +1256,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                           pipelineLayout_, 0, 1,
                           &descriptorSets_[currentFrame_], 0, nullptr);
 
-  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
+  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices_.size()), 1, 0,
                    0, 0);
 
   ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);

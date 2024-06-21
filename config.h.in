@@ -18,4 +18,7 @@
 #define VK_RENDERER_WINDOW_HEIGHT 600
 #define VK_RENDERER_WINDOW_TITLE "Vulkan Renderer"
 
+#define VK_RENDERER_MODEL_PATH "models/viking_room.obj"
+#define VK_RENDERER_TEXTURE_PATH "textures/viking_room.png"
+
 #define MAX_FRAMES_IN_FLIGHT 2

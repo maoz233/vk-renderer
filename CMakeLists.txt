@@ -52,6 +52,19 @@ endforeach()
 set(COPY_TEXTURE copy-textures)
 add_custom_target(${COPY_TEXTURE} ALL DEPENDS ${TEXTURE_TARGETS})
 
+file(GLOB MODELS ${CMAKE_SOURCE_DIR}/models/*)
+foreach(MODEL ${MODELS})
+  get_filename_component(MODEL_NAME ${MODEL} NAME)
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/models/${MODEL_NAME}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MODEL} ${CMAKE_BINARY_DIR}/models/${MODEL_NAME}
+    DEPENDS ${MODEL}
+  )
+  list(APPEND MODEL_TARGETS ${CMAKE_BINARY_DIR}/models/${MODEL_NAME})
+endforeach()
+set(COPY_MODELS copy-models)
+add_custom_target(${COPY_MODELS} ALL DEPENDS ${MODEL_TARGETS})
+
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cc)
 
 if(WIN32)
@@ -62,7 +75,7 @@ if(WIN32)
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
-add_dependencies(${PROJECT_NAME} ${COPY_SHADERS} ${COPY_TEXTURE})
+add_dependencies(${PROJECT_NAME} ${COPY_SHADERS} ${COPY_TEXTURES} ${COPY_MODELS})
 
 include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_BINARY_DIR}
@@ -71,6 +84,7 @@ include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/imgui-1.90.8
   ${CMAKE_SOURCE_DIR}/lib/imgui-1.90.8/backends
   ${CMAKE_SOURCE_DIR}/lib/stb
+  ${CMAKE_SOURCE_DIR}/lib/tinyobjloader-2.0.0rc13
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 

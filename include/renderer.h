@@ -35,6 +35,8 @@ struct Vertex {
   static VkVertexInputBindingDescription getBindingDescription();
   static std::array<VkVertexInputAttributeDescription, 3>
   getAttributeDescriptions();
+
+  bool operator==(const Vertex& other) const;
 };
 
 struct UniformBufferObject {
@@ -83,6 +85,8 @@ class Renderer {
   VkPipeline graphicsPipeline_;
   std::vector<VkFramebuffer> swapChainFrameBuffers_;
   VkCommandPool commandPool_;
+  std::vector<Vertex> vertices_;
+  std::vector<uint32_t> indices_;
   VkBuffer vertexBuffer_;
   VkDeviceMemory vertexBufferMemory_;
   VkBuffer indexBuffer_;
@@ -128,6 +132,7 @@ class Renderer {
   void createCommandPool();
   void createDepthResources();
   void createFramebuffers();
+  void loadModel();
   void createVertexBuffer();
   void createIndexBufffer();
   void createUniformBuffers();
