@@ -122,9 +122,9 @@ Renderer::Renderer() = default;
 
 Renderer::~Renderer() {}
 
-void Renderer::run() {
+void Renderer::render() {
   init();
-  render();
+  run();
   clean();
 }
 
@@ -134,7 +134,7 @@ void Renderer::init() {
   initImGui();
 }
 
-void Renderer::render() {
+void Renderer::run() {
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
     drawFrame();

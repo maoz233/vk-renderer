@@ -63,7 +63,7 @@ class Renderer {
   Renderer();
   ~Renderer();
 
-  void run();
+  void render();
 
  private:
   GLFWwindow* window_;
@@ -116,7 +116,7 @@ class Renderer {
   bool framebufferResized = false;
 
   void init();
-  void render();
+  void run();
   void clean();
 
   void initWindow();
