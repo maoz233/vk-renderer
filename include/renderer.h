@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2024
  *
  */
+
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
 #include <array>

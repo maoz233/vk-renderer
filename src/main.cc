@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2024
  *
  */
+
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>

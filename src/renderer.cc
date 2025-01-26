@@ -8,10 +8,10 @@
  * @copyright Copyright (c) 2024
  *
  */
+
 #include "renderer.h"
 
 #include <algorithm>
-#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -47,8 +47,8 @@
 #include "config.h"
 
 namespace std {
-template <>
 
+template <>
 struct hash<vkr::Vertex> {
   size_t operator()(vkr::Vertex const& vertex) const {
     return ((hash<glm::vec3>()(vertex.pos) ^
@@ -1342,16 +1342,8 @@ void Renderer::recreateSwapchain() {
 }
 
 void Renderer::updateUniformBuffer(uint32_t currentFrame) {
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>(
-                   currentTime - startTime)
-                   .count();
-
   UniformBufferObject ubo{};
-  ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                          glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.model = glm::mat4(1.0f);
   ubo.view =
       glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                   glm::vec3(0.0f, 0.0f, 1.0f));
