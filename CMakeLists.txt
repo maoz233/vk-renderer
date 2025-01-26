@@ -26,47 +26,19 @@ set(IMGUI_SOURCES
     third-party/imgui/backends/imgui_impl_vulkan.cpp
 )
 
+# Assets
+file(COPY assets/ DESTINATION ${CMAKE_BINARY_DIR}/assets)
+
+# Shaders
 file(GLOB SHADERS ${CMAKE_SOURCE_DIR}/shaders/*.spv)
 foreach(SHADER ${SHADERS})
-  get_filename_component(SHADER_NAME ${SHADER} NAME)
-  add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SHADER} ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME}
-    DEPENDS ${SHADER}
-  )
-  list(APPEND SHADER_TARGETS ${CMAKE_BINARY_DIR}/shaders/${SHADER_NAME})
+  file(COPY ${SHADER} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
 endforeach()
-set(COPY_SHADERS copy-shaders)
-add_custom_target(${COPY_SHADERS} ALL DEPENDS ${SHADER_TARGETS})
 
-file(GLOB TEXTURES ${CMAKE_SOURCE_DIR}/textures/*)
-foreach(TEXTURE ${TEXTURES})
-  get_filename_component(TEXTURE_NAME ${TEXTURE} NAME)
-  add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TEXTURE} ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME}
-    DEPENDS ${TEXTURE}
-  )
-  list(APPEND TEXTURE_TARGETS ${CMAKE_BINARY_DIR}/textures/${TEXTURE_NAME})
-endforeach()
-set(COPY_TEXTURE copy-textures)
-add_custom_target(${COPY_TEXTURE} ALL DEPENDS ${TEXTURE_TARGETS})
-
-file(GLOB MODELS ${CMAKE_SOURCE_DIR}/models/*)
-foreach(MODEL ${MODELS})
-  get_filename_component(MODEL_NAME ${MODEL} NAME)
-  add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/models/${MODEL_NAME}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MODEL} ${CMAKE_BINARY_DIR}/models/${MODEL_NAME}
-    DEPENDS ${MODEL}
-  )
-  list(APPEND MODEL_TARGETS ${CMAKE_BINARY_DIR}/models/${MODEL_NAME})
-endforeach()
-set(COPY_MODELS copy-models)
-add_custom_target(${COPY_MODELS} ALL DEPENDS ${MODEL_TARGETS})
-
+# Source files
 file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/src/*.cc)
 
+# Output directory on Windows
 if(WIN32)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/)
@@ -74,9 +46,10 @@ if(WIN32)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/)
 endif()
 
+# Executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
-add_dependencies(${PROJECT_NAME} ${COPY_SHADERS} ${COPY_TEXTURES} ${COPY_MODELS})
 
+# Include directories
 include_directories(${PROJECT_NAME} PRIVATE 
   ${PROJECT_BINARY_DIR}
   ${CMAKE_SOURCE_DIR}/include
@@ -87,6 +60,7 @@ include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/third-party/tinyobjloader
 )
 
+# Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE 
   Vulkan::Vulkan 
   glfw

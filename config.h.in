@@ -10,15 +10,15 @@
  */
 #define VK_RENDERRER_NAME "@PROJECT_NAME@"
 
-#define VK_RENDERER_VERSION_MAJOR @vk-renderer_VERSION_MAJOR@
-#define VK_RENDERER_VERSION_MINOR @vk-renderer_VERSION_MINOR@
-#define VK_RENDERER_VERSION_PATCH @vk-renderer_VERSION_PATCH@
+#define VK_RENDERER_VERSION_MAJOR @vk - renderer_VERSION_MAJOR @
+#define VK_RENDERER_VERSION_MINOR @vk - renderer_VERSION_MINOR @
+#define VK_RENDERER_VERSION_PATCH @vk - renderer_VERSION_PATCH @
 
 #define VK_RENDERER_WINDOW_WIDTH 800
 #define VK_RENDERER_WINDOW_HEIGHT 600
 #define VK_RENDERER_WINDOW_TITLE "Vulkan Renderer"
 
-#define VK_RENDERER_MODEL_PATH "models/viking_room.obj"
-#define VK_RENDERER_TEXTURE_PATH "textures/viking_room.png"
+#define VK_RENDERER_MODEL_PATH "assets/models/viking_room.obj"
+#define VK_RENDERER_TEXTURE_PATH "assets/images/viking_room.png"
 
 #define MAX_FRAMES_IN_FLIGHT 2
