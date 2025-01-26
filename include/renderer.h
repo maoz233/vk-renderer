@@ -12,6 +12,7 @@
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
 #include <array>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -25,6 +26,8 @@
 
 #define VK_RENDERER_IMGUI
 #include <imgui.h>
+
+#include "window.h"
 
 namespace vkr {
 
@@ -67,7 +70,7 @@ class Renderer {
   void render();
 
  private:
-  GLFWwindow* window_;
+  std::unique_ptr<Window> window_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debugMessenger_;
   VkSurfaceKHR surface_;

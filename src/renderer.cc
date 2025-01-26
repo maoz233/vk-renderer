@@ -45,6 +45,7 @@
 #include <tiny_obj_loader.h>
 
 #include "config.h"
+#include "window.h"
 
 namespace std {
 
@@ -135,7 +136,7 @@ void Renderer::init() {
 }
 
 void Renderer::run() {
-  while (!glfwWindowShouldClose(window_)) {
+  while (!this->window_->shouldClose()) {
     glfwPollEvents();
     drawFrame();
   }
@@ -191,27 +192,17 @@ void Renderer::clean() {
   }
 
   vkDestroyInstance(instance_, nullptr);
-
-  glfwDestroyWindow(window_);
-  glfwTerminate();
 }
 
 void Renderer::initWindow() {
-  if (!glfwInit()) {
-    throw std::runtime_error("Failed to init GLFW!");
-  }
+  WindowConfig config{};
+  config.width = VK_RENDERER_WINDOW_WIDTH;
+  config.height = VK_RENDERER_WINDOW_HEIGHT;
+  config.title = VK_RENDERER_WINDOW_TITLE;
+  config.user = this;
+  config.fbcb = frameBufferResizeCallback;
 
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  window_ =
-      glfwCreateWindow(VK_RENDERER_WINDOW_WIDTH, VK_RENDERER_WINDOW_HEIGHT,
-                       VK_RENDERER_WINDOW_TITLE, nullptr, nullptr);
-  if (!window_) {
-    throw std::runtime_error("Failed to create GLFW window!");
-  }
-
-  glfwSetWindowUserPointer(window_, this);
-  glfwSetFramebufferSizeCallback(window_, frameBufferResizeCallback);
+  this->window_ = std::make_unique<Window>(config);
 }
 
 void Renderer::initVulkan() {
@@ -250,7 +241,7 @@ void Renderer::initImGui() {
 
   ImGui::StyleColorsDark();
 
-  ImGui_ImplGlfw_InitForVulkan(window_, true);
+  ImGui_ImplGlfw_InitForVulkan(this->window_->getInstance(), true);
   ImGui_ImplVulkan_InitInfo initInfo{};
   initInfo.Instance = instance_;
   initInfo.PhysicalDevice = physicalDevice_;
@@ -433,8 +424,8 @@ void Renderer::setupDebugMessenger() {
 }
 
 void Renderer::createSurface() {
-  VkResult result =
-      glfwCreateWindowSurface(instance_, window_, nullptr, &surface_);
+  VkResult result = glfwCreateWindowSurface(
+      instance_, this->window_->getInstance(), nullptr, &surface_);
   if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to create window surface!");
   }
@@ -1321,12 +1312,12 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 void Renderer::recreateSwapchain() {
   int width = 0;
   int height = 0;
-  glfwGetFramebufferSize(window_, &width, &height);
+  this->window_->getFramebufferSize(&width, &height);
   while (0 == width || 0 == height) {
-    if (glfwWindowShouldClose(window_)) {
+    if (this->window_->shouldClose()) {
       return;
     }
-    glfwGetFramebufferSize(window_, &width, &height);
+    this->window_->getFramebufferSize(&width, &height);
     glfwWaitEvents();
   }
 
@@ -1479,7 +1470,7 @@ VkExtent2D Renderer::chooseSwapExtent(
   } else {
     int width = 0;
     int height = 0;
-    glfwGetFramebufferSize(window_, &width, &height);
+    this->window_->getFramebufferSize(&width, &height);
 
     VkExtent2D actualExtent{static_cast<uint32_t>(width),
                             static_cast<uint32_t>(height)};
