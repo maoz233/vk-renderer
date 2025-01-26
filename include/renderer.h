@@ -67,7 +67,7 @@ class Renderer {
   Renderer();
   ~Renderer();
 
-  void render();
+  void run();
 
  private:
   std::unique_ptr<Window> window_;
@@ -118,10 +118,6 @@ class Renderer {
   std::vector<VkFence> inFlightFences_;
   uint32_t currentFrame_ = 0;
   bool framebufferResized = false;
-
-  void init();
-  void run();
-  void clean();
 
   void initWindow();
   void initVulkan();

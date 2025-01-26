@@ -119,32 +119,21 @@ bool QueueFamilyIndices::isComplete() {
   return graphicsFamily.has_value() && presentFamily.has_value();
 }
 
-Renderer::Renderer() = default;
+Renderer::Renderer() {
+  WindowConfig config{};
+  config.width = VK_RENDERER_WINDOW_WIDTH;
+  config.height = VK_RENDERER_WINDOW_HEIGHT;
+  config.title = VK_RENDERER_WINDOW_TITLE;
+  config.user = this;
+  config.fbcb = frameBufferResizeCallback;
 
-Renderer::~Renderer() {}
+  this->window_ = std::make_unique<Window>(config);
 
-void Renderer::render() {
-  init();
-  run();
-  clean();
-}
+  this->initVulkan();
+  this->initImGui();
+};
 
-void Renderer::init() {
-  initWindow();
-  initVulkan();
-  initImGui();
-}
-
-void Renderer::run() {
-  while (!this->window_->shouldClose()) {
-    glfwPollEvents();
-    drawFrame();
-  }
-
-  vkDeviceWaitIdle(device_);
-}
-
-void Renderer::clean() {
+Renderer::~Renderer() {
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
@@ -194,15 +183,13 @@ void Renderer::clean() {
   vkDestroyInstance(instance_, nullptr);
 }
 
-void Renderer::initWindow() {
-  WindowConfig config{};
-  config.width = VK_RENDERER_WINDOW_WIDTH;
-  config.height = VK_RENDERER_WINDOW_HEIGHT;
-  config.title = VK_RENDERER_WINDOW_TITLE;
-  config.user = this;
-  config.fbcb = frameBufferResizeCallback;
+void Renderer::run() {
+  while (!this->window_->shouldClose()) {
+    glfwPollEvents();
+    drawFrame();
+  }
 
-  this->window_ = std::make_unique<Window>(config);
+  vkDeviceWaitIdle(device_);
 }
 
 void Renderer::initVulkan() {
