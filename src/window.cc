@@ -14,6 +14,12 @@
 #include <iostream>
 #include <stdexcept>
 
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#include "renderer.h"
+
 namespace vkr {
 
 Window::Window(const WindowConfig& config) {
@@ -30,7 +36,8 @@ Window::Window(const WindowConfig& config) {
   }
 
   glfwSetWindowUserPointer(this->window_, config.user);
-  glfwSetFramebufferSizeCallback(this->window_, config.fbcb);
+  glfwSetFramebufferSizeCallback(this->window_,
+                                 Window::frameBufferResizeCallback);
 }
 
 Window::~Window() {
@@ -46,6 +53,12 @@ bool Window::shouldClose() const {
 
 void Window::getFramebufferSize(int* width, int* height) const {
   glfwGetFramebufferSize(this->window_, width, height);
+}
+
+void Window::frameBufferResizeCallback(GLFWwindow* window, int width,
+                                       int height) {
+  auto renderer = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
+  renderer->setFramebufferResized(true);
 }
 
 }  // namespace vkr

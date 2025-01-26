@@ -18,12 +18,13 @@
 
 namespace vkr {
 
+class Renderer;
+
 struct WindowConfig {
   int width;
   int height;
   const char* title;
-  void* user;                   // window user pointer
-  GLFWframebuffersizefun fbcb;  // framebuffer size callback
+  void* user;  // window user pointer
 };
 
 class Window {
@@ -39,6 +40,9 @@ class Window {
 
  private:
   GLFWwindow* window_;
+
+  static void frameBufferResizeCallback(GLFWwindow* window, int width,
+                                        int height);
 };
 
 }  // namespace vkr

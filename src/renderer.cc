@@ -11,6 +11,8 @@
 
 #include "renderer.h"
 
+#include <vulkan/vulkan.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -22,14 +24,6 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
-
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
-#include <vulkan/vulkan.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -126,7 +120,6 @@ Renderer::Renderer() {
   windConfig.height = VK_RENDERER_WINDOW_HEIGHT;
   windConfig.title = VK_RENDERER_WINDOW_TITLE;
   windConfig.user = this;
-  windConfig.fbcb = frameBufferResizeCallback;
 
   this->window_ = std::make_unique<Window>(windConfig);
 
@@ -196,6 +189,10 @@ Renderer::~Renderer() {
   }
 
   vkDestroyInstance(instance_, nullptr);
+}
+
+void Renderer::setFramebufferResized(bool resized) {
+  this->framebufferResized_ = resized;
 }
 
 void Renderer::run() {
@@ -293,7 +290,7 @@ void Renderer::drawFrame() {
 
   result = vkQueuePresentKHR(presentQueue_, &presentInfo);
   if (VK_ERROR_OUT_OF_DATE_KHR == result || VK_SUBOPTIMAL_KHR == result ||
-      framebufferResized) {
+      this->framebufferResized_) {
     recreateSwapchain();
   } else if (VK_SUCCESS != result) {
     throw std::runtime_error("Failed to present swap chain image!");
@@ -1982,12 +1979,6 @@ std::vector<char> Renderer::readFile(const std::string& filename) {
   file.close();
 
   return buffer;
-}
-
-void Renderer::frameBufferResizeCallback(GLFWwindow* window, int width,
-                                         int height) {
-  auto renderer = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
-  renderer->framebufferResized = true;
 }
 
 void Renderer::checkVKResult(VkResult result) {

@@ -11,18 +11,14 @@
 
 #ifndef VK_RENDERER_RENDERER_H_
 #define VK_RENDERER_RENDERER_H_
+#include <vulkan/vulkan.h>
+
 #include <array>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
-
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
-
-#include <glm/glm.hpp>
 
 #include "gui.h"
 #include "window.h"
@@ -64,6 +60,8 @@ class Renderer {
  public:
   Renderer();
   ~Renderer();
+
+  void setFramebufferResized(bool resized);
 
   void run();
 
@@ -115,8 +113,7 @@ class Renderer {
   std::vector<VkSemaphore> renderFinishiedSemephores_;
   std::vector<VkFence> inFlightFences_;
   uint32_t currentFrame_ = 0;
-  bool framebufferResized = false;
-
+  bool framebufferResized_ = false;
   std::unique_ptr<GUI> gui_;
 
   void initVulkan();
@@ -212,8 +209,6 @@ class Renderer {
                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void* pUserData);
   static std::vector<char> readFile(const std::string& filename);
-  static void frameBufferResizeCallback(GLFWwindow* window, int width,
-                                        int height);
   static void checkVKResult(VkResult result);
 };
 
