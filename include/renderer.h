@@ -24,9 +24,7 @@
 
 #include <glm/glm.hpp>
 
-#define VK_RENDERER_IMGUI
-#include <imgui.h>
-
+#include "gui.h"
 #include "window.h"
 
 namespace vkr {
@@ -119,9 +117,9 @@ class Renderer {
   uint32_t currentFrame_ = 0;
   bool framebufferResized = false;
 
-  void initWindow();
+  std::unique_ptr<GUI> gui_;
+
   void initVulkan();
-  void initImGui();
   void drawFrame();
 
   void createInstance();
@@ -149,8 +147,7 @@ class Renderer {
   void createDescriptorSets();
   void createCommandBuffers();
   void createSyncObjects();
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex,
-                           ImDrawData* drawData);
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void recreateSwapchain();
   void updateUniformBuffer(uint32_t currentFrame);
 

@@ -26,6 +26,9 @@
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
 
 #define GLM_FORCE_RADIANS
@@ -36,15 +39,13 @@
 #include <glm/gtx/hash.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <stb_image.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 #include "config.h"
+#include "gui.h"
 #include "window.h"
 
 namespace std {
@@ -120,24 +121,38 @@ bool QueueFamilyIndices::isComplete() {
 }
 
 Renderer::Renderer() {
-  WindowConfig config{};
-  config.width = VK_RENDERER_WINDOW_WIDTH;
-  config.height = VK_RENDERER_WINDOW_HEIGHT;
-  config.title = VK_RENDERER_WINDOW_TITLE;
-  config.user = this;
-  config.fbcb = frameBufferResizeCallback;
+  WindowConfig windConfig{};
+  windConfig.width = VK_RENDERER_WINDOW_WIDTH;
+  windConfig.height = VK_RENDERER_WINDOW_HEIGHT;
+  windConfig.title = VK_RENDERER_WINDOW_TITLE;
+  windConfig.user = this;
+  windConfig.fbcb = frameBufferResizeCallback;
 
-  this->window_ = std::make_unique<Window>(config);
+  this->window_ = std::make_unique<Window>(windConfig);
 
   this->initVulkan();
-  this->initImGui();
+
+  GUIConfig guiConfig{};
+  guiConfig.window = this->window_->getInstance();
+  guiConfig.instance = this->instance_;
+  guiConfig.physicalDevice = this->physicalDevice_;
+  guiConfig.device = this->device_;
+  QueueFamilyIndices indices = this->findQueueFamilies(this->physicalDevice_);
+  guiConfig.queueFamily = indices.graphicsFamily.value();
+  guiConfig.queue = this->graphicsQueue_;
+  guiConfig.pipelineCache = VK_NULL_HANDLE;
+  guiConfig.descriptorPool = this->descriptorPool_;
+  guiConfig.renderPass = this->renderPass_;
+  guiConfig.subpass = 0;
+  guiConfig.minImageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  guiConfig.imageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+  guiConfig.msaaSamples = this->msaaSamples_;
+  guiConfig.allocator = nullptr;
+  guiConfig.checkVkResultFn = checkVKResult;
+  this->gui_ = std::make_unique<GUI>(guiConfig);
 };
 
 Renderer::~Renderer() {
-  ImGui_ImplVulkan_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-
   cleanupSwapChain();
 
   vkDestroySampler(device_, textureSampler_, nullptr);
@@ -220,37 +235,6 @@ void Renderer::initVulkan() {
   createSyncObjects();
 }
 
-void Renderer::initImGui() {
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-  ImGui::StyleColorsDark();
-
-  ImGui_ImplGlfw_InitForVulkan(this->window_->getInstance(), true);
-  ImGui_ImplVulkan_InitInfo initInfo{};
-  initInfo.Instance = instance_;
-  initInfo.PhysicalDevice = physicalDevice_;
-  initInfo.Device = device_;
-
-  QueueFamilyIndices indices = findQueueFamilies(physicalDevice_);
-  initInfo.QueueFamily = indices.graphicsFamily.value();
-
-  initInfo.Queue = graphicsQueue_;
-  initInfo.PipelineCache = VK_NULL_HANDLE;
-  initInfo.DescriptorPool = descriptorPool_;
-  initInfo.RenderPass = renderPass_;
-  initInfo.Subpass = 0;
-  initInfo.MinImageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-  initInfo.ImageCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-  initInfo.MSAASamples = msaaSamples_;
-  initInfo.Allocator = nullptr;
-  initInfo.CheckVkResultFn = checkVKResult;
-
-  ImGui_ImplVulkan_Init(&initInfo);
-}
-
 void Renderer::drawFrame() {
   vkWaitForFences(device_, 1, &inFlightFences_[currentFrame_], VK_TRUE,
                   UINT64_MAX);
@@ -270,26 +254,8 @@ void Renderer::drawFrame() {
 
   updateUniformBuffer(currentFrame_);
 
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-
-  // ImGui::ShowDemoWindow();
-
-  ImGui::Begin("Profiler");
-
-  ImGuiIO& io = ImGui::GetIO();
-  ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate,
-              io.Framerate);
-  ImGui::Text("Multisapling Count: %d", static_cast<int32_t>(msaaSamples_));
-
-  ImGui::End();
-
-  ImGui::Render();
-  ImDrawData* drawData = ImGui::GetDrawData();
-
   vkResetCommandBuffer(commandBuffers_[currentFrame_], 0);
-  recordCommandBuffer(commandBuffers_[currentFrame_], imageIndex, drawData);
+  recordCommandBuffer(commandBuffers_[currentFrame_], imageIndex);
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1228,7 +1194,7 @@ void Renderer::createSyncObjects() {
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
-                                   uint32_t imageIndex, ImDrawData* drawData) {
+                                   uint32_t imageIndex) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -1286,7 +1252,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices_.size()), 1, 0,
                    0, 0);
 
-  ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
+  this->gui_->draw(commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
 
