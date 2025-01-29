@@ -716,8 +716,8 @@ void Renderer::createGraphicsPipeline() {
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
   depthStencil.depthBoundsTestEnable = VK_FALSE;
-  depthStencil.minDepthBounds = 0.0f;
-  depthStencil.maxDepthBounds = 1.0f;
+  depthStencil.minDepthBounds = 0.f;
+  depthStencil.maxDepthBounds = 1.f;
   depthStencil.stencilTestEnable = VK_FALSE;
   depthStencil.front = {};
   depthStencil.back = {};
@@ -876,8 +876,8 @@ void Renderer::loadModel() {
                     attrib.vertices[3 * index.vertex_index + 1],
                     attrib.vertices[3 * index.vertex_index + 2]};
       vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
-                         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
-      vertex.color = {1.0f, 1.0f, 1.0f};
+                         1.f - attrib.texcoords[2 * index.texcoord_index + 1]};
+      vertex.color = {1.f, 1.f, 1.f};
 
       if (0 == uniqueVertices.count(vertex)) {
         uniqueVertices[vertex] = static_cast<uint32_t>(vertices_.size());
@@ -1068,9 +1068,9 @@ void Renderer::createTextureSampler() {
   samplerInfo.compareEnable = VK_FALSE;
   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  samplerInfo.minLod = 0.0f;
+  samplerInfo.minLod = 0.f;
   samplerInfo.maxLod = static_cast<float>(mipLevels_);
-  samplerInfo.mipLodBias = 0.0f;
+  samplerInfo.mipLodBias = 0.f;
 
   VkResult result =
       vkCreateSampler(device_, &samplerInfo, nullptr, &textureSampler_);
@@ -1210,8 +1210,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   renderPassInfo.renderArea.extent = swapChainExtent_;
 
   std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-  clearValues[1].depthStencil = {1.0f, 0};
+  clearValues[0].color = {{0.f, 0.f, 0.f, 1.f}};
+  clearValues[1].depthStencil = {1.f, 0};
 
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
   renderPassInfo.pClearValues = clearValues.data();
@@ -1233,8 +1233,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   viewport.y = 0.f;
   viewport.width = static_cast<float>(swapChainExtent_.width);
   viewport.height = static_cast<float>(swapChainExtent_.height);
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+  viewport.minDepth = 0.f;
+  viewport.maxDepth = 1.f;
   vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
   VkRect2D scissor{};
@@ -1284,15 +1284,14 @@ void Renderer::recreateSwapchain() {
 
 void Renderer::updateUniformBuffer(uint32_t currentFrame) {
   UniformBufferObject ubo{};
-  ubo.model = glm::mat4(1.0f);
-  ubo.view =
-      glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                  glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.model = glm::mat4(1.f);
+  ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.f, 0.f, 0.f),
+                         glm::vec3(0.f, 0.f, 1.f));
   ubo.proj = glm::perspective(
-      glm::radians(45.0f),
+      glm::radians(45.f),
       swapChainExtent_.width / static_cast<float>(swapChainExtent_.height),
-      0.1f, 10.0f);
-  ubo.proj[1][1] *= -1;
+      0.1f, 10.f);
+  ubo.proj[1][1] *= -1.f;
 
   memcpy(uniformBuffersMapped_[currentFrame], &ubo, sizeof(ubo));
 }
